@@ -166,10 +166,6 @@ Próximos passos realistas
 1. Integrar Alembic e rodar migrações controladas no CI antes dos testes.
 2. Migrar a execução de código para contêineres por job (limitar CPU/mem/tempo).
 3. Provisionar secrets via um vault e detalhar runbooks de deploy para staging/prod.
-4. Adicionar um script de demonstração (`examples/run_demo.py`) e artefatos de exemplo para apresentação em portfólio.
-
-Diferenciais práticos
-- Foco em produtividade operacional: gera planos, aplica correções e documenta decisões automaticamente.
 - Abordagem segura e pragmática com validações e fallback, evitando dependência cega de modelos generativos.
 - Estrutura preparada para demonstração: instalação, testes e execução com Postgres local via docker-compose.
 
