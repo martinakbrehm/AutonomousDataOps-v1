@@ -1,0 +1,96 @@
+name: Build Wheel & Artifacts
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  test-sqlite:
+    name: Test (SQLite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build pytest
+
+      - name: Install package (editable) for tests
+        run: pip install -e .
+
+      - name: Run tests (sqlite)
+        run: pytest -q
+
+  test-postgres:
+    name: Test (Postgres service)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: autodops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Postgres
+        run: |
+          for i in `seq 1 20`; do
+            pg_isready -h localhost -p 5432 -U postgres && break || sleep 1
+          done
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build pytest sqlalchemy psycopg2-binary
+
+      - name: Install package (editable) for tests
+        run: pip install -e .
+
+      - name: Run tests (postgres)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/autodops
+        run: pytest -q
+
+  build:
+    needs: [test-sqlite, test-postgres]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build wheel
+        run: python -m build --wheel --no-isolation -o dist
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autodops-wheel
+          path: dist/*.whl

@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    image: autodops:local
+    ports:
+      - "8000:8000"
+    environment:
+      - API_KEY=dev-key
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/autodops
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./:/app
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: autodops
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
